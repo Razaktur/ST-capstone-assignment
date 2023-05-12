@@ -1,0 +1,458 @@
+# link to our datasets
+# Popular cide games (1980 -2023) - https://www.kaggle.com/datasets/arnabchaki/popular-video-games-1980-2023
+# sales of video games - https://www.kaggle.com/datasets/arslanali4343/sales-of-video-games
+
+
+
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+
+###Highest rated game for each year###
+def Q1():
+    gamesData = pd.read_csv(r'C:\Users\willi\Desktop\Uni\Software Technology\games.csv.zip')
+
+    gamesData['Release Date'] = pd.to_datetime(gamesData['Release Date'], errors='coerce')
+
+    gamesData = gamesData.dropna(subset=['Release Date'])
+    gamesData = gamesData.dropna(subset=['Rating'])
+
+    bestGameYear = gamesData.loc[gamesData.groupby(gamesData['Release Date'].dt.year)['Rating'].idxmax()]
+
+    bestGameYearlabels = bestGameYear['Release Date'].dt.year.astype(str) + ': ' + bestGameYear['Title']
+
+    plt.bar(bestGameYearlabels, bestGameYear['Rating'])
+    plt.xticks(fontsize= 7, rotation=90)
+    plt.xlabel('Year: Game')
+    plt.ylabel('Rating')
+    plt.title('Highest Rated Game of the Year')
+    plot1 = plt.savefig('Plot 1')
+
+    st.set_option('deprecation.showPyplotGlobalUse', False)
+
+    return plot1
+
+
+###How many 4.5 or better games does each team have###
+
+def Q2():
+    gamesData = pd.read_csv(r'C:\Users\willi\Desktop\Uni\Software Technology\games.csv.zip')
+
+    gamesData['Team'] = gamesData['Team'].str.split(',')
+    teamExploded = gamesData.explode('Team')
+
+    teamExploded['Team Names'] = teamExploded['Team'].str.extractall(r"'([^']+)\'").reset_index(drop=True)[0]
+
+    over4point5Games = teamExploded[teamExploded['Rating'] >= 4.5].groupby('Team Names')['Team Names'].count()
+
+    print(over4point5Games)
+
+    over4point5Games.plot(kind='bar')
+
+# Set the title and axis labels
+    plt.title('Number of Games with Rating >= 4.5 by Team')
+    plt.xlabel('Team Names')
+    plt.ylabel('Number of Games')
+    plt.xticks(fontsize=7)
+
+    plot2 = plt.savefig('Plot 2')
+
+    return plot2
+
+###How many 4.5 star games for each genre###
+def Q3():
+    gamesData = pd.read_csv(r'C:\Users\willi\Desktop\Uni\Software Technology\games.csv.zip')
+
+    gamesData['Genres'] = gamesData['Genres'].str.split(',')
+    genreExploded = gamesData.explode('Genres')
+
+    genreExploded['Unique Genres'] = genreExploded['Genres'].str.extractall(r"'([^']+)\'").reset_index(drop=True)[0]
+
+    over4point5Games = genreExploded[genreExploded['Rating'] >= 4.5].groupby('Unique Genres')['Unique Genres'].count()
+
+    print(over4point5Games)
+
+    over4point5Games.plot(kind='bar')
+
+    # Set the title and axis labels
+    plt.title('Number of Games with Rating >= 4.5 by Genre')
+    plt.xlabel('Genre')
+    plt.ylabel('Number of Games')
+
+    plot3 = plt.savefig('Plot3')
+
+    return plot3
+
+###Which games have the highest all time plays###
+
+def Q4():
+    gamesData = pd.read_csv(r'C:\Users\willi\Desktop\Uni\Software Technology\games.csv.zip')
+
+    # Convert 'Plays' column to numeric
+    gamesData['Plays'] = pd.to_numeric(gamesData['Plays'].str.replace('K', '', regex=False))
+
+    # Convert 'Plays' column to integer
+    gamesData['Plays'] = gamesData['Plays'].astype(int)
+
+
+    # # Filter the DataFrame based on the minimum number of plays
+    min_plays = 800
+    gamesData_filtered = gamesData[gamesData['Plays'] >= min_plays]
+
+    # Find the index labels of the rows with the highest number of plays for each title
+    highestPlays = gamesData_filtered.groupby('Title')['Plays'].max().sort_values(ascending=False)
+
+
+    highestPlays.plot(kind='bar')
+
+    # Set the title and axis labels
+    plt.title('Number of game Plays (in thousands)')
+    plt.xlabel('Game')
+    plt.ylabel('Number of Plays')
+
+    plot4 = plt.savefig('Plot4')
+
+    return plot4
+
+def Q5():
+    import numpy as np
+    import pandas as pd
+    import sklearn
+    import matplotlib.pyplot as plt
+    from sklearn import preprocessing
+    from sklearn.preprocessing import OrdinalEncoder
+    from sklearn.model_selection import KFold
+    from sklearn.model_selection import cross_val_score
+    from sklearn.metrics import classification_report
+    from sklearn.metrics import accuracy_score
+    from sklearn.tree import DecisionTreeClassifier
+
+
+
+    gamesData = pd.read_csv(r'C:\Users\willi\Desktop\Uni\Software Technology\games.csv.zip')
+
+    for col in gamesData:
+        if gamesData[col].dtype == 'object':
+            gamesData[col] = OrdinalEncoder().fit_transform(gamesData[col].values.reshape(-1, 1))
+
+    class_label = gamesData['Rating']
+    gamesData = gamesData.drop(['Rating'], axis=1)
+    gamesData = (gamesData - gamesData.min()) / (gamesData.max() - gamesData.min())
+    gamesData['Rating'] = class_label
+
+    dataCopy = gamesData.copy()
+    le = preprocessing.LabelEncoder()
+    title = le.fit_transform(list(dataCopy["Title"]))
+    releaseDate = le.fit_transform(list(dataCopy["Release Date"]))
+    team = le.fit_transform(list(dataCopy["Team"]))
+    rating = le.fit_transform(list(dataCopy["Rating"]))
+    timesListed = le.fit_transform(list(dataCopy["Times Listed"]))
+    noReviews = le.fit_transform(list(dataCopy["Number of Reviews"]))
+    genres = le.fit_transform(list(dataCopy["Genres"]))
+    summary = le.fit_transform(list(dataCopy["Summary"]))
+    reviews = le.fit_transform(list(dataCopy["Reviews"]))
+    plays = le.fit_transform(list(dataCopy["Plays"]))
+    playing = le.fit_transform(list(dataCopy["Playing"]))
+    backlogs = le.fit_transform(list(dataCopy["Backlogs"]))
+    wishlist = le.fit_transform(list(dataCopy["Wishlist"]))
+
+    x = list(zip(title, releaseDate, team, timesListed, noReviews, genres, summary, reviews, plays, playing, backlogs,
+                 wishlist))
+    y = list(rating)
+
+    num_folds = 5
+    seed = 7
+    scoring = 'accuracy'
+
+    x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(x, y, test_size=0.20, random_state=seed)
+
+    np.shape(x_train), np.shape(x_test)
+
+    models = []
+    models.append(('DT', DecisionTreeClassifier()))
+
+    # evaluate each model in turn
+    results = []
+    names = []
+    print("Performance on Training set")
+    for name, model in models:
+        kfold = KFold(n_splits=num_folds, shuffle=True, random_state=seed)
+        cv_results = cross_val_score(model, x_train, y_train, cv=kfold, scoring='accuracy')
+        results.append(cv_results)
+        names.append(name)
+        msg = "%s: %f (%f)" % (name, cv_results.mean(), cv_results.std())
+        msg += '\n'
+        print(msg)
+
+    fig = plt.figure()
+    fig.suptitle('Algorithm Comparison')
+    ax = fig.add_subplot(111)
+    plt.boxplot(results)
+    ax.set_xticklabels(names)
+    plt.show()
+
+    dt = DecisionTreeClassifier()
+
+    best_model = dt
+    best_model.fit(x_train, y_train)
+    y_pred = best_model.predict(x_test)
+
+    print("Best Model Accuracy Score on Test Set:", accuracy_score(y_test, y_pred))
+
+    return classification_report(y_test, y_pred)
+
+
+
+def ZQ1():
+    df = pd.read_csv(r'C:\Users\willi\Desktop\Uni\Software Technology\archive.zip')
+    publisher_sales = df.groupby('Publisher')['Global_Sales'].sum()
+
+    publisher_sales = publisher_sales.sort_values(ascending=False)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    publisher_sales.head(10).plot(kind='bar', figsize=(20, 10), color='deeppink')
+
+    ax.set_title('Top 10 Video Game Publishers by Global Sales')
+    ax.set_xlabel('Publisher')
+    ax.set_ylabel('Global Sales (in millions)')
+    plt.xticks(fontsize=18)
+
+    plotZ1 = plt.savefig('ZPlot1')
+
+    return plotZ1
+
+
+def ZQ2():
+
+    df = pd.read_csv(r'C:\Users\willi\Desktop\Uni\Software Technology\archive.zip')
+
+    df = df[df['Year'] >= '2000']
+    platform_Sales = df.groupby('Platform')['Global_Sales'].sum()
+    plt.scatter(x=platform_Sales.index, y=platform_Sales.values)
+
+    plt.title('Global Sales by Platform')
+    plt.xlabel('Platforms')
+    plt.ylabel('Global Sales of games (in millions)')
+
+    plotZ2 = plt.savefig('Zplot2')
+
+    return plotZ2
+
+
+def ZQ3():
+    df = pd.read_csv(r'C:\Users\willi\Desktop\Uni\Software Technology\archive.zip')
+
+    fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+
+    # First plot
+    genre_sales_jp = df.groupby('Genre')['JP_Sales'].sum()
+    axs[0, 0].scatter(x=genre_sales_jp.index, y=genre_sales_jp.values)
+    axs[0, 0].set_title('JP Sales by Genre')
+    axs[0, 0].set_xlabel('Genre')
+    axs[0, 0].set_ylabel('JP Sales (in millions)')
+    axs[0, 0].set_xticklabels(axs[0, 0].get_xticklabels(), rotation=90)
+
+    # second plot
+    genre_sales_global = df.groupby('Genre')['Other_Sales'].sum()
+    axs[0, 1].scatter(x=genre_sales_global.index, y=genre_sales_global.values)
+    axs[0, 1].set_title('Other Sales by Genre')
+    axs[0, 1].set_xlabel('Genre')
+    axs[0, 1].set_ylabel('Global Sales (in millions)')
+    axs[0, 1].set_xticklabels(axs[0, 1].get_xticklabels(), rotation=90)
+
+    # third plot
+    platform_sales_na = df.groupby('Genre')['NA_Sales'].sum()
+    axs[1, 0].scatter(x=platform_sales_na.index, y=platform_sales_na.values)
+    axs[1, 0].set_title('NA Sales by Platform')
+    axs[1, 0].set_xlabel('Genre')
+    axs[1, 0].set_ylabel('NA Sales (in millions)')
+    axs[1, 0].set_xticklabels(axs[1, 0].get_xticklabels(), rotation=90)
+
+    # fourht plot
+    platform_sales_eu = df.groupby('Genre')['EU_Sales'].sum()
+    axs[1, 1].scatter(x=platform_sales_eu.index, y=platform_sales_eu.values)
+    axs[1, 1].set_title('EU Sales by Platform')
+    axs[1, 1].set_xlabel('Genre')
+    axs[1, 1].set_ylabel('EU Sales (in millions)')
+    axs[1, 1].set_xticklabels(axs[1, 1].get_xticklabels(), rotation=90)
+
+    plt.tight_layout()
+
+    plotZ3 = plt.savefig('Zplot3')
+
+    return plotZ3
+
+
+def ZQ4():
+    df = pd.read_csv(r'C:\Users\willi\Desktop\Uni\Software Technology\archive.zip')
+
+    platform_sales = df.groupby('Platform')['Global_Sales'].mean().sort_values(ascending=False)
+    plt.barh(platform_sales.index, platform_sales, color='green')
+
+    plt.xlabel('Global Sales (millions)')
+    plt.ylabel('Platform')
+    plt.title('Average global sales per game for each platform')
+
+    plotZ4 = plt.savefig('Zplot4')
+
+    return plotZ4
+
+
+def ZQ5():
+    from sklearn import preprocessing
+    from sklearn.preprocessing import OrdinalEncoder
+    import pandas as pd
+    from sklearn import model_selection
+    import numpy as np
+    from sklearn.model_selection import KFold
+    from sklearn.model_selection import cross_val_score
+    from sklearn.tree import DecisionTreeClassifier
+    from sklearn.naive_bayes import GaussianNB
+    from sklearn.svm import SVC
+    from sklearn.ensemble import GradientBoostingClassifier
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay, classification_report
+
+    df = pd.read_csv(r'C:\Users\willi\Desktop\Uni\Software Technology\archive.zip')
+
+    for col in df:
+        if df[col].dtype == 'object': df[col] = OrdinalEncoder().fit_transform(df[col].values.reshape(-1, 1))
+
+    # make jp_sales the main argument that we want to look for
+    class_label = df['JP_Sales']
+    df = df.drop(['JP_Sales'], axis=1)
+    df = (df - df.min()) / (df.max() - df.min())
+    df['JP_Sales'] = class_label
+
+    # Reduce dataset size (unbelievably slow model construction time without this)
+    df = df.sample(frac=0.1, random_state=1)
+
+    game_data = df.copy()
+    le = preprocessing.LabelEncoder()
+    name = le.fit_transform(list(game_data["Name"]))
+    platform = le.fit_transform(list(game_data["Platform"]))
+    year = le.fit_transform(list(game_data["Year"]))
+    genre = le.fit_transform(list(game_data["Genre"]))
+    publisher = le.fit_transform(list(game_data["Publisher"]))
+    na_sales = le.fit_transform(list(game_data["NA_Sales"]))
+    eu_sales = le.fit_transform(list(game_data["EU_Sales"]))
+    jp_sales = le.fit_transform(list(game_data["JP_Sales"]))
+    other_sales = le.fit_transform(list(game_data["Other_Sales"]))
+    global_sales = le.fit_transform(list(game_data["Global_Sales"]))
+
+    num_folds = 5
+    seed = 7
+    scoring = 'accuracy'
+
+    x = list(zip(platform, year, genre, publisher, na_sales, eu_sales, name, other_sales, global_sales))
+    y = list(jp_sales)
+    x_train, x_test, y_train, y_test = model_selection.train_test_split(x, y, test_size=0.20, random_state=seed)
+
+    np.shape(x_train), np.shape(x_test)
+
+    models = []
+    models.append(('RF', RandomForestClassifier()))
+
+
+    # evaluate each model
+    results = []
+    names = []
+    print("Performance on Training set")
+    for name, model in models:
+        kfold = KFold(n_splits=num_folds, shuffle=True, random_state=seed)
+        cv_results = cross_val_score(model, x_train, y_train, cv=kfold, scoring='accuracy')
+        results.append(cv_results)
+        names.append(name)
+        msg = "%s: %f (%f)" % (name, cv_results.mean(), cv_results.std())
+        msg += '\n'
+        print(msg)
+
+
+
+
+    rf = RandomForestClassifier()
+
+    # Analyse mean accuracy and SD to assess what model was best (its RF everytime)
+    best_model = rf
+    best_model.fit(x_train, y_train)
+    y_pred = best_model.predict(x_test)
+    print("Best Model Accuracy Score on Test Set:", accuracy_score(y_test, y_pred))
+
+    return classification_report(y_test, y_pred)
+
+
+
+
+
+
+
+
+#streamlit stuff
+st.title("Video Game Data Analysis")
+
+st.subheader("First Data Set: Popular Video Games (1980 - 2023) - Billy u3259273")
+
+st.write('Question 1: Which game is the highest rated game for each year?')
+
+st.pyplot(Q1())
+
+st.write("From this graph we can not only see the best game for each year from 1980 through to 2023, but can additionally observe how the rating for the best yearly game has gradually increased and then plateaued at roughly 4.5/5")
+
+st.write('')
+st.write('Question 2: How many 4.5 star or better games does each team have?')
+
+st.pyplot(Q2())
+
+st.write('From this graph it is clear to see that Nintendo is by far the Team with the highest number of 4.5 and higher rated games coming in with 9 games. Following this is Sony Interactive Entertainment with 7. However almost all other Teams clock in with 2 games.')
+
+st.write('')
+st.write('Question 3: How many 4.5 star or better games in each genre?')
+
+st.pyplot(Q3())
+
+st.write('From this graph it is plain to see that the Adventure Genre has by far the most amount of 4.5 or higher rated games at 40 games. Following this at around 20 games is the Indie genre, the Platform genre, the RPG genre, and the Shooter genre. It is important to note when analysing this graph that games have multiple genres and the number of 4.5 and higher rated adventure genre games may be due to many games falling under the Adventure genre')
+
+st.write('')
+st.write('Question 4: Which games have the highest all time plays?')
+
+st.pyplot(Q4())
+
+st.write('From this graph we can see that there are a range of different games competing for the title of most plays with a whopping 17 games all scoring near the top! however despite this we can still see that Another World comes out on top with over 1.4 million plays! It is important to note that this graph filters out all games with an insignificant number of plays, thus leaving us with only the top 30 most played games.')
+
+st.subheader('PDA Results')
+st.write(Q5())
+#do Q5
+
+st.subheader('')
+st.subheader('Second Data Set: Sales Of Video Games - Zac u3243192')
+
+st.write('Question 1: What publisher has the greatest cumulative sales of video games?')
+
+st.pyplot(ZQ1())
+
+st.write('Analysing the plot shows that Nintendo has the greatest sales amount of their games by a landslide, when compared to their competitors with a company total of 1.75 billion + copies sold. When compared against their competitors even their closest one is 500 million sales behind, showing the real market hold Nintendo has as a publisher.')
+
+st.write('')
+st.write('Question 2: Which modern game platform (year >= 2000 ) has the highest sales of game types?')
+
+st.pyplot(ZQ2())
+
+st.write('Gathering the information from the scatter plot above has determined that the PS2 has the highest sales for any platform with over 1.2 billion game sales. This dataset also is only displaying games released after the year 2000, mainly due to the readability of the graph however it also further motions to extreme precedence the Playstation has over its rivals.')
+
+st.write('')
+st.write('Question 3: What genre of games is the most popular (in terms of sales) in each specific region (NA, JP, EU and Other)?')
+
+st.pyplot(ZQ3())
+
+st.write('Analysing the plot data above shows that the most popular game Genres are Action, Sport and Shooter in every part of the world, excluding japan. This is of note as the most popular genre is roleplaying which is not even in the top 5 of many other parts of the world.')
+
+st.write('')
+st.write('Question 4: Out of all available game platforms which one has the highest average sales per game?')
+
+st.pyplot(ZQ4())
+
+st.write('The plot above shows that the GameBoy (GB) has the highest average median game sale value, at a whopping 2.5 million + sales. Trailing closely behind is the NES. However this information only shows that the games made for these platforms are extremely high grossing OR they had some great performing games with a small pool to choose from. And so the information gained from this must be taken with reservations.')
+
+st.subheader('PDA Results')
+st.write(ZQ5())
